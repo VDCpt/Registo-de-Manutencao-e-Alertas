@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Logbook Fácil - Voz do Condutor</title>
+    </head>
+<body>
+    <div id="dashboard">
+        <h1>🛠️ Registo de Manutenção</h1>
+        <p>KM Atual: <input type="number" id="current_km" value="169000"></p>
+
+        <form id="maintenance_form">
+            Descrição: <input type="text" id="desc" required>
+            KM da Intervenção: <input type="number" id="m_km" required>
+            <button type="submit">Registar</button>
+        </form>
+
+        <h2>🚨 Alertas</h2>
+        <div id="alerts_display"></div>
+
+        <h2>📝 Histórico</h2>
+        <ul id="history_list">
+            </ul>
+        
+        <button id="download_pdf">Descarregar Relatório PDF</button>
+    </div>
+
+    <script>
+        const ALERTA_OLEO_KM = 15000;
+        let records = JSON.parse(localStorage.getItem('vdc_logbook')) || [];
+
+        function saveRecords() {
+            localStorage.setItem('vdc_logbook', JSON.stringify(records));
+        }
+
+        function checkAlerts(currentKm) {
+            document.getElementById('alerts_display').innerHTML = '';
+            
+            // 1. Alerta de Óleo
+            const lastOil = records.find(r => r.desc.toLowerCase().includes('óleo'));
+            if (lastOil) {
+                const nextOilKm = lastOil.km + ALERTA_OLEO_KM;
+                const kmLeft = nextOilKm - currentKm;
+                if (kmLeft < 2000) {
+                    document.getElementById('alerts_display').innerHTML += 
+                        `<p style="color:red;">Atenção: Troca de Óleo em ${kmLeft} km.</p>`;
+                }
+            }
+        }
+
+        document.getElementById('maintenance_form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const desc = document.getElementById('desc').value;
+            const km = parseInt(document.getElementById('m_km').value);
+            
+            records.push({ desc: desc, km: km, date: new Date().toLocaleDateString() });
+            saveRecords();
+            renderHistory();
+            checkAlerts(parseInt(document.getElementById('current_km').value));
+            this.reset();
+        });
+
+        // (Faltaria a função renderHistory e a lógica do PDF, que usariam as bibliotecas JS)
+
+        // Inicializar com os dados guardados
+        renderHistory();
+        checkAlerts(parseInt(document.getElementById('current_km').value));
+    </script>
+</body>
+</html>
