@@ -1,34 +1,54 @@
-# 🛠️ Logbook de Manutenção e Alertas - Voz Do Condutor (VDC)
+# 🛠️ Logbook de Manutenção Fácil - Voz Do Condutor (VDC)
 
-Este repositório contém o código-fonte da ferramenta de **Registo de Manutenção e Alertas** (Logbook Digital) desenvolvida para a comunidade de motoristas TVDE da **Voz do Condutor (VDC)**.
+Este repositório contém o código da ferramenta **Logbook de Manutenção e Alertas** desenvolvida para a comunidade de motoristas TVDE da **Voz do Condutor (VDC)**.
 
-A ferramenta foi concebida para ajudar os motoristas a gerir os custos, a quilometragem e o tempo das intervenções dos seus veículos, garantindo que nunca perdem os prazos críticos de manutenção ou inspeção.
+Esta versão é um **Web App Estático** (HTML e JavaScript puro), tornando-o extremamente fácil de usar. Os dados são guardados diretamente no seu navegador, sem precisar de internet ou de um servidor.
 
 ---
 
 ## 💡 Sobre o Projeto
 
-O Logbook funciona como um sistema de gestão de ativos, permitindo:
+O Logbook foi concebido para simplificar a gestão de custos e intervenções do veículo, permitindo:
 
-* **Registo Completo:** Guardar data, KM e custo de cada intervenção (troca de óleo, pneus, inspeções, etc.).
-* **Alertas Automáticos:** Calcular e exibir alertas urgentes baseados em regras de KM (ex: trocar o óleo a cada 15.000 km) ou tempo (ex: Inspeção anualmente).
-* **Análise de Custos:** Gerar um relatório PDF com gráficos para análise mensal dos custos de manutenção.
-
-**Atenção:** Esta aplicação é executada através de um servidor Python local (Flask) e não funciona apenas abrindo o ficheiro HTML no navegador.
+* **Registo Rápido:** Adicione facilmente a descrição, KM e data de qualquer manutenção (óleo, pneus, inspeções).
+* **Alertas Simples:** Receber notificações visuais quando a manutenção crítica está próxima.
+* **Acessibilidade:** Funciona diretamente no seu navegador, sem instalação de *software* ou conhecimentos técnicos.
 
 ---
 
-## 🚀 Como Usar e Executar a Aplicação (Passo a Passo)
+## 🚀 Como Usar a Aplicação (Super Simples)
 
-Para aceder ao *dashboard* e usar todas as funcionalidades (incluindo a geração de PDF), precisa de executar o servidor web no seu computador.
+Uma das grandes vantagens desta versão é que não precisa de instalar nada!
 
-### 1. Requisitos
+### 1. Aceder Online (Recomendado)
 
-Certifique-se de que tem o **Python** (versão 3.8 ou superior) instalado no seu sistema.
+Basta aceder ao link de implementação do GitHub Pages no seu telemóvel ou computador:
 
-### 2. Preparar o Ambiente
+🔗 **[https://vdcpt.github.io/Registo-de-Manutencao-e-Alertas/](https://vdcpt.github.io/Registo-de-Manutencao-e-Alertas/)**
 
-Abra a **Linha de Comandos** (Terminal ou CMD) e instale as bibliotecas Python necessárias (Flask, pandas, etc.).
+* **Nota:** O seu histórico de manutenção fica **guardado no seu navegador**. Não limpe os dados ou a *cache* do seu navegador, ou perderá os seus registos!
 
-```bash
-pip install Flask pandas matplotlib reportlab
+### 2. Usar Localmente (Se preferir)
+
+Se não quiser usar a versão online, basta descarregar o ficheiro `index.html` e abri-lo diretamente no seu navegador.
+
+1.  Descarregue todos os ficheiros do repositório.
+2.  Faça **Duplo Clique** no ficheiro `index.html`.
+3.  A aplicação abre imediatamente no seu navegador.
+
+---
+
+## 📂 Estrutura do Repositório (Foco nos Ficheiros Chave)
+
+| Ficheiro | Descrição |
+| :--- | :--- |
+| `index.html` | **A Aplicação Completa.** Contém o HTML, CSS e o JavaScript que faz os cálculos de alertas e guarda os dados no seu navegador. |
+| `README.md` | Este guia de instruções. |
+
+---
+
+## 🤝 Contribuições
+
+Este projeto simplificado está aberto a sugestões de melhoria por parte da comunidade TVDE. Se tiver ideias para tornar o *dashboard* ainda mais intuitivo, por favor, abra um *Issue* no repositório.
+
+**Desenvolvido por Voz Do Condutor — Plataforma de Apoio ao Motorista TVDE**
