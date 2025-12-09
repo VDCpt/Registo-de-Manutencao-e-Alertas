@@ -2,69 +2,440 @@
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
-    <title>Logbook Fácil - Voz do Condutor</title>
-    </head>
-<body>
-    <div id="dashboard">
-        <h1>🛠️ Registo de Manutenção</h1>
-        <p>KM Atual: <input type="number" id="current_km" value="169000"></p>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛠️ Diário de Manutenção Fácil - VDC</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background-color: #f4f7f6;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        h1 { 
+            color: #007bff; 
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        h2 { 
+            color: #444; 
+            margin-top: 25px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        /* Formulário */
+        #maintenance_form {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 100px 100px;
+            gap: 10px;
+            align-items: end;
+            margin-bottom: 25px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+        #maintenance_form label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"], input[type="number"], input[type="date"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-secondary { background-color: #6c757d; color: white; }
+        .btn-danger { background-color: #dc3545; color: white; }
 
-        <form id="maintenance_form">
-            Descrição: <input type="text" id="desc" required>
-            KM da Intervenção: <input type="number" id="m_km" required>
-            <button type="submit">Registar</button>
-        </form>
-
-        <h2>🚨 Alertas</h2>
-        <div id="alerts_display"></div>
-
-        <h2>📝 Histórico</h2>
-        <ul id="history_list">
-            </ul>
-        
-        <button id="download_pdf">Descarregar Relatório PDF</button>
-    </div>
-
-    <script>
-        const ALERTA_OLEO_KM = 15000;
-        let records = JSON.parse(localStorage.getItem('vdc_logbook')) || [];
-
-        function saveRecords() {
-            localStorage.setItem('vdc_logbook', JSON.stringify(records));
+        /* Tabela de Histórico */
+        #history_table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        #history_table th, #history_table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        #history_table th {
+            background-color: #f2f2f2;
         }
 
-        function checkAlerts(currentKm) {
-            document.getElementById('alerts_display').innerHTML = '';
+        /* Alertas */
+        #alerts_display p {
+            padding: 10px;
+            border-left: 5px solid #ffc107;
+            background-color: #fff3cd;
+            color: #856404;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        .alert-urgent {
+            border-left: 5px solid #dc3545 !important;
+            background-color: #f8d7da !important;
+            color: #721c24 !important;
+        }
+        
+        /* Controles de Ação */
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Estilos de Impressão */
+        @media print {
+            .controls, #maintenance_form, #clear_db {
+                display: none;
+            }
+            .container {
+                box-shadow: none;
+                padding: 0;
+            }
+            body {
+                background-color: white;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🛠️ Diário de Manutenção Fácil - Voz Do Condutor</h1>
+    
+    <p>
+        <label for="current_km">KM Atual do Veículo (para cálculo de alertas):</label>
+        <input type="number" id="current_km" value="0" onchange="checkAlerts()" required style="width: 150px; font-weight: bold;"> km
+    </p>
+
+    <h2>➕ Novo Registo</h2>
+    <form id="maintenance_form">
+        <div>
+            <label for="desc">Descrição</label>
+            <input type="text" id="desc" required placeholder="Ex: Troca de óleo/filtro">
+        </div>
+        <div>
+            <label for="cost">Custo (€)</label>
+            <input type="number" id="cost" step="0.01" value="0" required>
+        </div>
+        <div>
+            <label for="m_km">KM Intervenção</label>
+            <input type="number" id="m_km" required>
+        </div>
+        <div>
+            <label for="m_date">Data</label>
+            <input type="date" id="m_date" required>
+        </div>
+        <button type="submit" class="btn-primary">Registar</button>
+    </form>
+
+    <h2>🚨 Alertas Ativos</h2>
+    <div id="alerts_display">
+        <p>Ainda não foram detetados alertas.</p>
+    </div>
+
+    <h2>📝 Histórico de Intervenções</h2>
+    
+    <div class="controls">
+        <button onclick="window.print()" class="btn-secondary">🖨️ Imprimir Histórico</button>
+        <button id="download_pdf" class="btn-secondary">⬇️ Exportar para PDF</button>
+        <button onclick="clearDatabase()" id="clear_db" class="btn-danger">❌ Limpar Todos os Registos</button>
+    </div>
+
+    <table id="history_table">
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>KM</th>
+                <th>Descrição</th>
+                <th>Custo (€)</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody id="history_list">
+            </tbody>
+    </table>
+
+</div>
+
+<script>
+    // --- VARIÁVEIS E CONSTANTES ---
+    const DB_KEY = 'vdc_logbook_records';
+    const TROCA_OLEO_KM = 15000;
+    const TROCA_OLEO_ALERTA_KM = 2000;
+    const INSPECAO_ALERTA_DIAS = 60; // 2 meses
+
+    let records = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+    
+    // --- FUNÇÕES DE UTILIDADE ---
+
+    function formatKm(value) {
+        return value.toLocaleString('pt-PT');
+    }
+
+    function formatDate(dateString) {
+        // Assume formato AAAA-MM-DD
+        const [year, month, day] = dateString.split('-');
+        return `${day}-${month}-${year}`;
+    }
+
+    function saveRecords() {
+        localStorage.setItem(DB_KEY, JSON.stringify(records));
+    }
+
+    // --- LÓGICA DE ALERTAS ---
+    
+    function getLastMaintenance(keyword) {
+        // Encontra o registo mais recente que contém a palavra-chave
+        const relevantRecords = records
+            .filter(r => r.desc.toLowerCase().includes(keyword.toLowerCase()))
+            .sort((a, b) => new Date(b.date) - new Date(a.date));
+        return relevantRecords.length > 0 ? relevantRecords[0] : null;
+    }
+
+    function checkAlerts() {
+        const currentKm = parseInt(document.getElementById('current_km').value) || 0;
+        const alertsDisplay = document.getElementById('alerts_display');
+        alertsDisplay.innerHTML = '';
+        let alertsFound = 0;
+        const now = new Date();
+
+        // 1. Alerta de Óleo (Baseado em KM)
+        const lastOil = getLastMaintenance('óleo');
+        if (lastOil) {
+            const nextOilKm = lastOil.km + TROCA_OLEO_KM;
+            const kmLeft = nextOilKm - currentKm;
             
-            // 1. Alerta de Óleo
-            const lastOil = records.find(r => r.desc.toLowerCase().includes('óleo'));
-            if (lastOil) {
-                const nextOilKm = lastOil.km + ALERTA_OLEO_KM;
-                const kmLeft = nextOilKm - currentKm;
-                if (kmLeft < 2000) {
-                    document.getElementById('alerts_display').innerHTML += 
-                        `<p style="color:red;">Atenção: Troca de Óleo em ${kmLeft} km.</p>`;
-                }
+            let alertClass = '';
+            let message = '';
+
+            if (kmLeft <= 0) {
+                alertClass = 'alert-urgent';
+                message = `**URGENTE:** Troca de óleo atrasada! Deveria ter sido feita há ${formatKm(Math.abs(kmLeft))} km.`;
+                alertsFound++;
+            } else if (kmLeft <= TROCA_OLEO_ALERTA_KM) {
+                alertClass = ''; // Alerta Amarelo Padrão
+                message = `**Atenção:** Próxima troca de óleo em ${formatKm(kmLeft)} km. Prevista em ${formatKm(nextOilKm)} km.`;
+                alertsFound++;
+            }
+
+            if (message) {
+                alertsDisplay.innerHTML += `<p class="${alertClass}">${message}</p>`;
             }
         }
 
-        document.getElementById('maintenance_form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const desc = document.getElementById('desc').value;
-            const km = parseInt(document.getElementById('m_km').value);
+        // 2. Alerta de Inspeção (Baseado em Data)
+        const lastInspection = getLastMaintenance('inspeção');
+        if (lastInspection) {
+            const lastInspectionDate = new Date(lastInspection.date);
+            const nextInspectionDate = new Date(lastInspectionDate);
+            nextInspectionDate.setFullYear(lastInspectionDate.getFullYear() + 1);
             
-            records.push({ desc: desc, km: km, date: new Date().toLocaleDateString() });
+            const timeDiff = nextInspectionDate.getTime() - now.getTime();
+            const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24));
+            
+            if (daysLeft <= INSPECAO_ALERTA_DIAS) {
+                let alertClass = daysLeft <= 30 ? 'alert-urgent' : '';
+                alertsDisplay.innerHTML += `<p class="${alertClass}">
+                    **URGENTE:** Inspeção obrigatória a aproximar-se. Prevista para ${formatDate(nextInspectionDate.toISOString().split('T')[0])}. Faltam ${daysLeft} dias.
+                </p>`;
+                alertsFound++;
+            }
+        }
+
+        if (alertsFound === 0) {
+            alertsDisplay.innerHTML = '<p style="border-left: 5px solid #28a745; background-color: #d4edda; color: #155724;">✅ Sem alertas de manutenção pendentes.</p>';
+        }
+    }
+
+
+    // --- RENDERIZAÇÃO E REGISTO ---
+
+    function renderHistory() {
+        const historyList = document.getElementById('history_list');
+        historyList.innerHTML = '';
+
+        // Ordena por data mais recente
+        records.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        records.forEach((record, index) => {
+            const row = historyList.insertRow();
+            
+            row.insertCell(0).textContent = formatDate(record.date);
+            row.insertCell(1).textContent = formatKm(record.km);
+            row.insertCell(2).textContent = record.desc;
+            row.insertCell(3).textContent = `${record.cost.toFixed(2).replace('.', ',')} €`;
+            
+            const actionCell = row.insertCell(4);
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'Remover';
+            deleteButton.className = 'btn-danger';
+            deleteButton.onclick = () => removeRecord(index);
+            actionCell.appendChild(deleteButton);
+        });
+        
+        checkAlerts();
+    }
+
+    function addRecord(record) {
+        records.push(record);
+        saveRecords();
+        renderHistory();
+        document.getElementById('current_km').value = record.km; // Atualiza o KM após o registo
+    }
+    
+    function removeRecord(index) {
+        // O array de registos é ordenado, então o índice na UI não corresponde ao índice guardado.
+        // É mais seguro usar um ID, mas para simplificar, removemos o elemento pelo índice DOM
+        if (confirm("Tem certeza que deseja remover este registo?")) {
+            // Reordenar para garantir que o índice DOM corresponde ao array ordenado
+            records.sort((a, b) => new Date(b.date) - new Date(a.date));
+            records.splice(index, 1);
             saveRecords();
             renderHistory();
-            checkAlerts(parseInt(document.getElementById('current_km').value));
+        }
+    }
+
+    document.getElementById('maintenance_form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        try {
+            const newRecord = {
+                desc: document.getElementById('desc').value,
+                cost: parseFloat(document.getElementById('cost').value) || 0,
+                km: parseInt(document.getElementById('m_km').value),
+                date: document.getElementById('m_date').value,
+            };
+
+            if (newRecord.km <= (parseInt(document.getElementById('current_km').value) || 0)) {
+                if (!confirm("O KM do registo é menor que o KM atual. Tem certeza que está correto?")) {
+                    return;
+                }
+            }
+
+            addRecord(newRecord);
             this.reset();
+            // Preenche a data de novo
+            document.getElementById('m_date').value = new Date().toISOString().split('T')[0];
+
+        } catch (error) {
+            alert("Erro ao registar. Verifique se KM e Custo são números válidos.");
+        }
+    });
+
+    function clearDatabase() {
+        if (confirm("ATENÇÃO: Tem certeza que deseja apagar TODO o seu histórico de manutenção? Esta ação é irreversível!")) {
+            localStorage.removeItem(DB_KEY);
+            records = [];
+            document.getElementById('current_km').value = 0;
+            renderHistory();
+        }
+    }
+
+    // --- GERAÇÃO DE PDF (usando jsPDF) ---
+
+    function generatePdfReport() {
+        if (typeof window.jspdf.jsPDF !== 'function') {
+            alert('Erro: A biblioteca jsPDF não carregou. Verifique a conexão com a internet.');
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const currentDate = new Date().toLocaleDateString('pt-PT');
+        const currentKm = formatKm(parseInt(document.getElementById('current_km').value) || 0);
+
+        let y = 15;
+
+        // Título
+        doc.setFontSize(18);
+        doc.text("Relatório de Logbook de Manutenção - VDC", 10, y);
+        y += 10;
+        
+        // Info Básica
+        doc.setFontSize(12);
+        doc.text(`Data do Relatório: ${currentDate}`, 10, y);
+        y += 7;
+        doc.text(`KM Atual: ${currentKm} km`, 10, y);
+        y += 10;
+
+        // Tabela de Histórico
+        doc.setFontSize(14);
+        doc.text("Histórico de Intervenções:", 10, y);
+        y += 7;
+
+        const tableData = records.map(r => [
+            formatDate(r.date),
+            formatKm(r.km),
+            r.desc,
+            `${r.cost.toFixed(2).replace('.', ',')} €`
+        ]);
+
+        const tableHeaders = [['Data', 'KM', 'Descrição', 'Custo (€)']];
+
+        doc.autoTable({
+            startY: y,
+            head: tableHeaders,
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillColor: [0, 123, 255] }, // Azul VDC
+            margin: { top: 10 }
         });
 
-        // (Faltaria a função renderHistory e a lógica do PDF, que usariam as bibliotecas JS)
+        doc.save(`Logbook_Manutencao_VDC_${currentDate}.pdf`);
+    }
 
-        // Inicializar com os dados guardados
+    // --- INICIALIZAÇÃO ---
+
+    function initialize() {
+        // Define a data atual no formulário
+        document.getElementById('m_date').value = new Date().toISOString().split('T')[0];
+        
+        // Carrega o KM atual (se for o último KM do registo mais recente)
+        if (records.length > 0) {
+            records.sort((a, b) => new Date(b.date) - new Date(a.date));
+            document.getElementById('current_km').value = records[0].km;
+        }
+
         renderHistory();
-        checkAlerts(parseInt(document.getElementById('current_km').value));
-    </script>
+        checkAlerts();
+        
+        // Adiciona listener para o botão de PDF
+        document.getElementById('download_pdf').addEventListener('click', generatePdfReport);
+
+        // Verifica se a função autoTable está disponível após o carregamento do jspdf
+        if (typeof doc === 'undefined') {
+             // O autoTable é um plugin, tentamos carregá-lo se o jspdf base estiver lá
+             const script = document.createElement('script');
+             script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+             document.head.appendChild(script);
+        }
+    }
+
+    // Inicializa a aplicação ao carregar a página
+    window.onload = initialize;
+</script>
+
 </body>
 </html>
